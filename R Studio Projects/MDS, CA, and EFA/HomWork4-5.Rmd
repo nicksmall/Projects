@@ -1,0 +1,246 @@
+---
+title: "HomeWork 4-5"
+author: "Nicholas Anthony Small"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+data("heptathlon",package="HSAUR2")
+mydata <- heptathlon[-25,-8] # remove the PNG as an outlier and the last variable (the final scores)
+```
+
+a)	Create a scaled distance matrix for observations.
+
+```{r}
+d <- dist(scale(mydata))
+```
+
+
+
+b)	Perform a graphical MDS analysis on the resulting "distance" matrix of part a. Label the points using the row names (set an appropriate cex (size) for a better view). Who is the most similar athlete to Scheider(SWI)?
+
+```{r}
+# Braun is the most similar athlete to Scheider
+
+mds <- cmdscale(d)
+plot(mds, pch = ". ")
+text(mds, labels = rownames(mydata), cex = 0.7)
+points(0, -1.6, cex = 10, col =2)
+
+
+```
+
+c)	Use the correlation matrix of the data. Convert the correlation matrix to a distance matrix by computing (1-correlation) . Explain why the resulting matrix represents "distances" between variables.
+
+```{r}
+# The matrix represents the correlation between each variable based on the distances. When the distance is large it relates to a low or negative correlation and if it is small there is a high correlation.
+
+v.dist <- 1-cor(mydata)
+round(v.dist, 2)
+```
+
+
+
+d)	Perform a graphical MDS analysis on the resulting "distance" matrix of part c. Label the points using the column names (set an appropriate cex (size) for a better view). What variables are more similar (related) to each other?
+
+```{r}
+# Shot and Longjump has a high correlation, thus making them similar.
+# Hurdles and run200m is also similar
+mds2 <- cmdscale(v.dist)
+plot(mds2)
+text(mds2, labels = colnames(mydata))
+```
+
+Problem 2
+
+
+
+```{r}
+grad <- read.csv("http://westfall.ba.ttu.edu/isqs6348/Rdata/pgs.csv", header = T)
+```
+
+
+Two variables of interest are FacTeaching, a 1, 2, 3, 4, 5 ratings of teaching at TTU by the student, and COL, the college from which the student graduated. Perform a correspondence analysis of these two variables as follows.
+
+a)	Construct the contingency table showing counts of students in all combinations of these two variables.
+```{r}
+tbl = table(grad$COL, grad$FacTeaching)
+tbl
+```
+
+
+b)	Construct the correspondence analysis (CA) plot and comment on the outlier, in light of your table in A. Then remove the outlier data you discovered and re-construct the CA plot.
+
+```{r}
+
+#This includes an outlier of DUAL which has only 2 students. This will skew the data and should be removed.
+library(ca)
+grad.ca <- ca(tbl)
+plot(grad.ca)
+
+#Removing the outlier of Dual and reconstructing the plot
+tbl2 <- tbl[-5,]
+grad.ca2 <- ca(tbl2)
+plot(grad.ca2)
+
+```
+
+c)	Pick three colleges in your graph, two of which are close to each other, and the third of which is far from your first two. Find the three conditional distributions of rating for your three colleges, and interpret the distance between the graph points in terms of "distances" between those three conditional distributions
+
+```{r}
+# We can conclude that 
+#P(5 | ED ) \approv P(5 | HS)
+#P(5 | AR ) < P(5 | ED)
+#P(1 | AR ) > P(1 | ED)
+
+
+#Proof
+cond.tbl <- prop.table(tbl2, margin = 1) ; 
+round(cond.tbl,2)
+cond.tbl[c(2, 5, 8)]
+
+# We can conclude that The probability of ED = 5 is close to the probability of HS = 5
+# The probability of AR = 5 is less than the probability of ED = 5
+# The probability of AR = 2 is greater than the probability of ED = 1
+
+# P(5 | ED) = 0.3859
+# P(5 | HS) = 0.3402
+# P(1 | AR) = 0.0909 > P(1 | ED) = 0.0124
+```
+Problem 3
+
+Use the Daily stock returns data set. The columns are companies; Man1, Man2, Man3 are manufacturing companies; Serv1, Serv2, Serv3, Serv4 are service companies.
+
+
+```{r}
+stock <- read.csv("https://bit.ly/3egKiMU")
+stock = stock*100
+```
+
+a)	Perform an exploratory factor analysis (EFA) using two factors.
+```{r}
+efa <- factanal(stock, factor=2, scores = "regression")
+efa
+
+# The P-Value is 0.747
+efa$PVAL
+```
+
+
+
+b)	Interpret the p-value reported in your EFA.
+
+# P is > than 0.05
+# The really high p-value means that we fail to reject the null hypothesis (In an EFA, the null hypothesis # is that the model described by the factor we have found predicts the data well).
+
+c)	What are the factors (latent variables) in this model? Name them.
+
+# The latent variables are combinations of Man1, Man2, Man3, Serv1, Serv2, Serv3 and Serv4
+
+d)	Write the EFA regression model for variable Man1. For example
+
+$$Man1 = 0.462f1 + 0.148f2 + e$$
+
+Based on the EFA outputs, what are a and b? 
+
+
+e)	In the model of part d, determine the variance of the error term e.
+
+```{r}
+# The Variance of error is 0.764 which is very high compared to the others. 
+efa$uniquenesses[1]
+```
+
+f)	What is the correlation between f2 and Serve2?
+
+```{r}
+# The correlation of f2 and Swerve2 is 0.689.
+cor(efa$scores[,2], stock$Serv2)
+```
+
+g)	Compare the EFA approximated correlation matrix versus the actual correlation matrix. Report RMSE. What do you conclude?
+
+```{r}
+# Comparison of EFA approximated correlation matrix vs the actual correlation matrix.
+# The actual correlation has negative correlation which the approximate correlation are all positive. 
+
+f.loading <- efa$loadings[,1:2]
+corHat <- f.loading %*% t(f.loading) + diag(efa$uniquenesses)
+round(corHat,2)
+corr <- cor(mydata)
+round(corr,2)
+
+# The calculated RMSE is 0.594 chance of error in the correlation.
+rmse =sqrt(mean((corHat-corr)^2)); rmse
+```
+
+
+
+Problem 4 
+
+Perform factor analysis on questions 22-35 of TTU web survey data (The text description of variables and constructs are available at this link).
+
+```{r}
+ttuweb <- read.csv("https://bit.ly/3oNr5qX")
+mydata2 <- ttuweb[,22:35]
+
+```
+
+
+a)	There are some missing values in this data. Find the correlation matrix based on pair-wise deletion. You suppose to use this correlation matrix as an input for EFA.
+
+```{r}
+Mpwd=cor(mydata2,use="pairwise.complete.obs")
+```
+
+
+b)	Perform EFA suggesting two common factors. How would you name those factors?
+
+```{r}
+# Factor 1 would be named after a persons "attitude toward TTU" 
+# Factor 2 would be named after a person "attitude toward web site"
+
+efa2 = factanal(covmat = Mpwd, factors = 2, n.obs = nrow(mydata2))
+efa2
+
+# Demonstrates all values greater than 0.5
+print(efa2$loadings, cut = 0.5)
+```
+
+
+c)	Perform EFA suggesting three common factors. How would you name those factors?
+
+```{r}
+
+# Factor 1 would be named after a persons "attitude toward TTU"
+# Factor 2 would be named after a person "attitude toward web site"
+# Factor 3 would be named after a person "attitude toward TTU"
+
+efa3 = factanal(covmat = Mpwd, factors = 3, n.obs = nrow(mydata2))
+efa3
+
+print(efa3$loadings, cut = 0.5)
+```
+
+d)	What rotation method is used in factanal as a default method? Explain what that rotation does?
+
+# Varimax Rotation is the default rotation method of factor analysis. Varimax rotation is used to simplify # the expression of a particular sub-space Where the actual coordinate system is unchanged, but it is the
+# orthogonal basis that is being rotated to align with those coordinates.
+
+e)	Repeat part b (EFA with two factors) without rotation (inside factanal put rotation = "none"). Will you end up with the same names for your factors?
+
+```{r}
+# Yes you will end up with the same names for the factors. 
+
+efa4 = factanal(covmat = Mpwd, factors = 2, n.obs = nrow(mydata2), rotation = "none")
+efa4
+
+print(efa4$loadings, cut = 0.5)
+```
+
+
+
