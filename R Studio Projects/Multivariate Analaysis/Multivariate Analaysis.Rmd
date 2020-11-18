@@ -1,0 +1,196 @@
+---
+title: "Homework 2"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Problem 1
+Use the bivariate boxplot on the scatterplot of pairs of variables ((temp, wind), (temp, precip)) in the air pollution data to identify any outliers. Calculate the correlation between each pair of variables using all the data and the data with any identified outliers removed. Comment on the results.
+
+```{r}
+ 
+
+library(HSAUR2)
+library(MVA)
+data("USairpollution", package = "HSAUR2")
+head(USairpollution)
+```
+
+```{r}
+# Bivariate Boxplot
+bvbox(cbind(USairpollution$temp, USairpollution$wind), xlab="temp", ylab = "wind")
+
+# Labeling each point according to its row number
+text(x=USairpollution$temp+0.9, y=USairpollution$wind+0.06, labels=seq(nrow(USairpollution)), cex=0.5)
+
+# From this plot 31st row and 23rd row are outliers as they lie outside the 75th %ile circle 
+
+bvbox(cbind(USairpollution$temp, USairpollution$precip), xlab = "temp", ylab = "precip")
+
+text(x=USairpollution$temp+0.9, y=USairpollution$precip+0.06, labels=seq(nrow(USairpollution)), cex=0.5)
+
+# From this plot 2nd, 31st, and 23rd row are outliers 
+
+
+cor(USairpollution$temp, USairpollution$wind)
+# Correlation of all temperature and wind data = -0.34 
+cor(USairpollution$temp[c(-31,-23)], USairpollution$wind[c(-31,-23)]) 
+# Correlation of all temperature and wind data except outliers = -0.25
+# When we removed the outliers, the correlation decreased. Therefore the temp and wind are not highly correlated
+
+
+cor(USairpollution$temp, USairpollution$precip)
+# Correlation of all temp and precip data is 0.38
+cor(USairpollution$temp[c(-2,-31,-23)], USairpollution$precip[c(-2,-31,-23)])
+# Correlation of all temperature and precipitation data except outliers is 0.62
+
+# When we removed the outliers the correlation increased, therefore the temperature and precipitation are highly correlated
+```
+
+Problem 2
+The banknote dataset contains measurements on 200 Swiss banknotes: 100 genuine and 100 counterfeits. The variables are the status of the "note," length of the bill, width of the left edge, width of the right edge, bottom margin width, and top margin width. All measurements are in millimeters. Read the data and pick the variables: "note,” "top_margin," and "diag_length."
+banknote <- read.csv("http://westfall.ba.ttu.edu/isqs6348/Rdata/swiss.csv") 
+mydata <- banknote[,c(1,6,7)]
+
+```{r}
+# Reading data
+banknote <- read.csv("http://westfall.ba.ttu.edu/isqs6348/Rdata/swiss.csv")
+
+
+mydata <- banknote[,c(1,6,7)]
+head(mydata)
+
+# a 
+# Calculating Densities  
+density_top_margin <- density(mydata$top_margin, bw = .20, kernel = "gaussian")
+plot(density_top_margin)
+density_diag_length <- density(mydata$diag_length, bw = .20, kernel = "gaussian")
+plot(density_diag_length)
+
+
+# b 
+install.packages("ks",repos = "http://cran.us.r-project.org")
+library(ks)
+kde <- kde(mydata[,c(2,3)])
+
+plot(kde, display = "image", xlab = "x", ylab = "y", col = viridisLite::viridis(20))
+
+plot(kde, display = "persp", col.fun = viridisLite::viridis, xlab = "x", ylab = "y")
+
+# c 
+plot(mydata[,2:3], col = ifelse(mydata[,1] == "real", "black", "red"))
+legend("topright",legend = c("real", "fake"),col = c("black", "red"), pch = 1, cex = .8)
+
+# Based on all the plots we can see that there is a clear distinction in the values for fake notes
+# and original notes. We can easily say with confidence if a note is fake or note based on its
+# top margin length and diagonal length
+```
+
+Problem 3
+Examine the multivariate normality (MVN) of the banknote data (excluding the "note" variable) by creating the chi-square plot of the data. Load the data as follow. Follow the listed steps to examine the multivariate normality.
+
+```{r}
+banknote <- read.csv("http://westfall.ba.ttu.edu/isqs6348/Rdata/swiss.csv") 
+mydata2 <- banknote[,-1]
+
+# a
+# Calculating the column means
+colmeans_vector <- colMeans(mydata2) 
+
+# b
+# Calculating the covariance
+cov_mydata<- cov(mydata2) # calculating the covariance 
+
+# c
+# calculating the mahalanobis distance 
+mahalanobis_distance  <- mahalanobis(mydata2, center = colmeans_vector, cov = cov_mydata)
+
+# d
+# sorting the distance 
+mahalanobis_distance_sorted <- sort(mahalanobis_distance)
+
+# e
+# finding the quantiles 
+quantiles <- qchisq(seq(0,1,by=1/(nrow(mydata2)-1)), df=ncol(mydata))
+
+# plotting them
+plot(quantiles, mahalanobis_distance_sorted)
+abline(a = 0, b = 1, col="red") 
+
+# Most the of the data is aligned closely with the red-line, hence we can say that for the most 
+# part data shows strong MVN form , so yes data is MVN
+```
+
+
+Problem 4
+Use the TTU graduate student exit survey data
+
+```{r}
+grad <- read.csv("http://westfall.ba.ttu.edu/isqs6348/Rdata/pgs.csv")
+# a 
+sum(!is.na(grad$GenRating)) # all the rows where rating is valid 
+
+# There are 1976 students with a valid rating 
+
+# b 
+# Using Jitter because the plot looks odd and is missing data. 
+plot(jitter(grad$FacKnowledge),jitter(grad$FacTeaching))
+
+# c 
+mydata3 <- subset(grad, select = c("FacTeaching", "FacKnowledge", "Housing"))
+head(mydata3)
+
+# d 
+#d.i 
+cor(mydata3[complete.cases(mydata),])
+
+
+
+#d.ii
+pair1<-cor(mydata3[complete.cases(mydata[,c(1,2)]), c(1,2)])
+pair2<-cor(mydata3[complete.cases(mydata[,c(1,3)]), c(1,3)])
+pair3<-cor(mydata3[complete.cases(mydata[,c(2,3)]), c(2,3)])
+
+pair1
+pair2
+pair3
+#d.iii
+install.packages("norm",repos = "http://cran.us.r-project.org")
+library(norm)
+#  using the norm package get the correlation 
+pre <- prelim.norm(as.matrix(mydata3)) 
+em <- em.norm(pre)
+getparam.norm(pre,em,corr=TRUE)$r
+
+
+# There is no significant difference between the methods. Based on the results we can choose any
+# for the example data. In real cases the choice will depend on the data availability
+# in cases where we have less NA values then complete.cases will be best, 
+# where we have less NA values per column but overall they become more then available-cases becomes # more suitable
+# mle is suitable when we want to input the data so that any value does not get discarded.
+
+```
+
+
+```{r}
+library(MASS)
+Cov <- matrix(c(1, 0.5, 0.5, 1), nrow = 2)
+
+mu <- c(0, 0)
+
+simData <- mvrnorm(n= 200, mu, Cov)
+
+ncol(simData)
+
+A = matrix(c(4,1,1,1), nrow = 2, ncol = 2)
+A
+corr(A)
+
+
+```
+
