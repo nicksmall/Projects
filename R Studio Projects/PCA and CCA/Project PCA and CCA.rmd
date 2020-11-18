@@ -1,0 +1,186 @@
+---
+title: "Homework 3"
+author: "Nicholas Anthony Small"
+date: "November 1st 2020"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Problem 1
+
+Use the police applicant data:
+
+```{r}
+police <- read.csv("https://bit.ly/police_applications")
+police
+```
+
+a)	Perform principal component analysis using the correlation matrix. You do not need to do data cleaning or fixing the direction of variables in this data.
+
+
+```{r}
+
+library(factoextra)
+pc <- princomp(police, cor = T)
+
+pc
+biplot(pc, col=c("black", "red"), cex =0.6)
+```
+
+b)	What percentage of the total variance is covered by the first two principal components?
+
+The percentage of variance explained by the first two components is:
+
+```{r}
+# 51% Percentage of the total variance is covered by the first two principal components.
+summary(pc, cor = T)
+
+round(100*sum((pc$sdev^2)[1:2])/sum(pc$sdev^2),1)
+
+```
+
+# Furthermore, visualizing the eigenvalues by showing the percentage of variances vs each principal components.:
+
+```{r}
+fviz_eig(pc)
+
+```
+
+c)	Report the loading coefficients (eigenvector of the correlation matrix) of the first two principal components.
+
+```{r}
+
+pc$loading[,1:2]
+
+```
+
+d)	Describe what information we can extract from the first two principal components? Explain. (You need to interpret the loading of the first two PCs)
+
+# We conclude that the main variation happens as a combination of WEIGHT, PELVIC, CHEST, FAT, etc, while the second contribution comes as a combination of RECVR, PULS, THIGH, etc. 
+
+
+## Problem 2
+
+Use crime data :
+
+```{r, echo=FALSE}
+crime <- read.csv("https://rb.gy/wu8kvo", row.names = "STATE")
+head(crime)
+
+```
+
+a)	Perform the principal components using the correlation matrix. You do not need to do data cleaning or fixing the direction of variables in this data.
+
+```{r}
+pc1 <- princomp(crime, cor = TRUE)
+```
+
+b) What percentage of the total variance is covered by the first two principal components?
+
+```{r}
+# 76.5 Percentage of the total variance is covered by the first two principal components.
+summary(pc1, cor = T)
+round(100*sum((pc1$sdev^2)[1:2])/sum(pc1$sdev^2),1)
+```
+# Furthermore, visualizing the eigenvalues by showing the percentage of variances vs each principal components.:
+
+```{r}
+fviz_eig(pc1)
+```
+
+c)	Report the loading coefficients (eigenvector of the correlation matrix) of the first two principal components.
+
+```{r}
+pc1$loading[,1:2]
+
+```
+
+d)	Describe what information we can extract from the first two principal components? Explain. (You need to interpret the loading of the first two PCs)
+
+# The first component shows that the importance of all variables is pretty evenly shared. Because you see the weightings all range from 0.295 to 0.440. The second one, on the other hand, points in the direction of murder mainly.
+
+
+
+e)	Construct the biplot graph of the crime data. Interpret the resulting biplot graph for "MISSISSIPPI," "NEVADA," and "HAWAII." (You can validate your conclusions by looking at the actual standardized (scaled) data values.)
+
+```{r}
+
+biplot(x = pc1, scale = 0, cex = 0.6, col = c("blue4", "brown3"))
+
+```
+
+Let's limit to the states of interest:
+
+```{r,warning=FALSE,echo=FALSE}
+
+selectedStates <- match(c("MISSISSIPPI", "NEVADA", "HAWAII"), rownames(crime))
+
+biplot(pc1$scores[selectedStates, 1:2], pc$loadings[,1:2], cex=c(0.8,.6),col = c("blue4", "brown3"))
+
+
+```
+
+# We can see that the Mississippi is low on all principles while Nevada is High on Larceny and Burglary while Hawaii is high on Larceny, but low on Burglary.
+
+
+## Problem 3
+
+Perform canonical correlation analysis on the Husband/Wife love data set (Answered by husband and wife; a total of eight responses).
+In this data, columns are the rating for the following questions:
+Q1. What is the level of passionate love you feel for your partner?
+Q2. What is the level of passionate love your partner feels for you?
+Q3. What is the level of companionate love you feel for your partner?
+Q4. What is the level of companionate love your partner feels for you?
+
+```{r}
+love <- read.csv("https://bit.ly/3onLanp", header = T)
+options(digits = 3)
+# Creating two sets for correlations
+X <- love[, 1:4]  # Husband's responses
+Y <- love[, 5:8]  # Wife's responses
+#install.packages("CCA")
+
+
+library(CCA)
+
+cca <- cc(X, Y)
+
+cca$xcoef
+cca$ycoef
+
+```
+
+a)	Find the linear combination of the four husband responses and the linear combination of the four wife responses, maximizing the two derived variables' correlation. (Hint: use X coefficients and write $U_1$ as a linear combination of X variables, then use Y coefficients and write $V_1$ as a linear combination of Y variables)
+
+$$ u_1 = 0.26h_1 - 0.86h_2 - 2.78h_3 + 2.68h_4 $$
+$$ v_1 = -0.85w_1 - 0.70w_2 - 1.74w_3 + 0.821w_4 $$
+
+
+b)	Find the correlation between $U_1$, $V_1$.
+
+```{r}
+# The correlation between U1 and V1 is 0.572
+cca$cor[1]
+```
+
+
+c) 	What does the husband linear combination ($U_1$) measure? To answer, based on the coefficient of X in $U_1$, ask yourself, "What does the husband linear combination measure?"
+
+# The linear combination $U_1$ measures mostly companionate love your partner feels for you. The rest of the coefficients are negative. 
+
+d) 	Repeat C. for the wives linear combination ($V_1$).
+
+# The linear combination $V_1$ measures negative passionate feelings with negative companion love for partner with a positive feel for companion from lover. Mostly companionate love your partner feels for you is measured.
+
+```{r}
+pc <- matrix(c(9, 2, -2, 1), nrow = 2)
+
+
+biplot(pc, col=c("black", "red"), cex =0.6)
+```
+
