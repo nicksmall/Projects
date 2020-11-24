@@ -1,5 +1,5 @@
 ---
-title: "Homework 6"
+title: "Clustering"
 Author: "Nicholas Anthony Small"
 output: word_document
 ---
