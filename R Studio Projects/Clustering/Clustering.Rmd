@@ -1,0 +1,174 @@
+---
+title: "Homework 6"
+Author: "Nicholas Anthony Small"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library("reshape")
+```
+
+Problem 1
+With real data, true cluster labels are unknown. Use the Europe Employment data.
+Dataset shows the percentage of people employed in nine industry sectors in Europe for the years 1989 to 1995.
+The variables are the percentages employed in
+•	AGR: Agriculture, forestry, and fishing
+•	MIN: Mining and quarrying
+•	MAN: Manufacturing
+•	PS: Power and water supplies
+•	CON: Construction
+•	SER: Services
+•	FIN: Finance
+•	SPS: Social and personal services
+•	TC: Transport and communications
+
+```{r}
+euro <- read.csv("https://bit.ly/3ktLWfr", header=TRUE, row.names=1)
+euro.c <- euro[-c(19,28), ]
+head(euro)
+```
+
+```{r}
+mydata = euro.c[, -1]
+head(mydata)
+```
+
+a)	Create a hierarchical clustering dendrogram based on complete linkage (default). Don’t forget to extract your distance matrix from the scaled data.
+
+```{r}
+scale.dist = dist(scale(mydata))
+hc <- hclust(scale.dist, "complete")
+plot(hc, main = "Complete Linkage HC Dendogram")
+abline(h=3)
+```
+
+
+b)	Identify the appropriate number of clusters in Hierarchical clustering using a scree plot (hint: plot the reverse of hc$height).
+
+# The Number of clusters is: 3 based on the elbow test
+```{r}
+round(hc$height,2)
+plot(rev(hc$height))
+```
+
+c)	Based on your decision in part b, determine what countries are in which group?
+
+# The following countries are within cluster 1,2, and 3 below.
+```{r}
+ct <- cutree(hc,3)
+cat("\nCountries in cluster 1 \n")
+names(ct[ct == 1])
+cat("\nCountries in cluster 2 \n")
+names(ct[ct == 2])
+cat("\nCountries in cluster 3 \n")
+names(ct[ct == 3])
+```
+d)	Identify the appropriate number of clusters in kmeans clustering based on the WGSS scree plot function.
+
+# From the scree plot we can deduce there are 3 clusters
+```{r}
+plot.wgss = function(mydata, maxc) {
+  wss = numeric(maxc)
+  for (i in 1:maxc) 
+    wss[i] = kmeans(mydata,centers=i, nstart = 10)$tot.withinss 
+  plot(1:maxc, wss, type="b", xlab="Number of Clusters",
+  ylab="Within groups sum of squares", main="Scree Plot") 
+}
+
+plot.wgss(mydata, 20)
+```
+
+
+e)	Based on your decision in part d, perform k-means clustering and determine what countries are in which group?
+
+# There are 2 countries in cluster 1, 6 countries in cluster 2, and 20 countries in cluster 3.They are listed below.
+
+```{r}
+km <- kmeans(mydata, center = 3, nstart = 10)
+table(km$cluster)
+cat("\nCountries in cluster 1 \n")
+names(km$cluster[km$cluster == 1])
+cat("\nCountries in cluster 2 \n")
+names(km$cluster[km$cluster == 2])
+cat("\nCountries in cluster 3 \n")
+names(km$cluster[km$cluster == 3])
+```
+
+
+f)	Attempt to identify the meanings of the clusters you found in part e by finding and interpreting the cluster centroids.
+•	AGR: Agriculture, forestry, and fishing
+•	MIN: Mining and quarrying
+•	MAN: Manufacturing
+•	PS: Power and water supplies
+•	CON: Construction
+•	SER: Services
+•	FIN: Finance
+•	SPS: Social and personal services
+•	TC: Transport and communications
+
+# Looking at the clusters we see certain variables which stand out across clusters, such as AGR (Agriculture), MIN (Mining), MAN(Manufacturing) and PS (Power and water supplies), FIN. Apart from these three SPS and SER also show differences.
+# The very first cluster has most of its people working tertiary sector such as FIN , SER, SPS or secondary sector manufacturing. Very small amount of its population is into agriculture and mininig.
+
+# The second cluster is primarily engaged in mining and agriculture (47 %). There are no jobs in manufacturing.
+
+# The third cluster shows AGR and MAN and some services jobs.
+```{r}
+round(km$centers,2)
+```
+
+
+
+g)	Attempt to identify the meanings of the clusters you found in part f by plotting different pairs of principal component scores, the (PC1,PC2), (PC1,PC3), and (PC2,PC3) scatterplots, with points labeled (or colored) according to the assigned cluster. You can look at the loading of the first three PCs to find a meaning for each PC.  
+
+# The first plot between components 1 and 2 we can see that cluster 2 show very high degree of separation from clusters 1 and 3 , and comp2 has a high correlation with mining and manufacturing both of which separate countries in cluster 2 from other countries. Similar separation is also seen in 3rd plot which also has component 2.
+
+# In the second plot we see that cluster 2 and 3 are close on the component 1 which has high correlation with agriculture.
+```{r}
+pca <- princomp(mydata, cor = T)
+pca$loadings[,1:3]
+plot(pca$scores[, 1:2], col = km$cluster)
+text(pca$scores[,c(1,2)], labels = abbreviate(rownames(mydata)), cex = 0.6, col = km$classification)
+plot(pca$scores[, c(1,3)], col = km$cluster)
+text(pca$scores[,c(1,3)], labels = abbreviate(rownames(mydata)), cex = 0.6, col = km$classification)
+plot(pca$scores[, 2:3], col = km$cluster)
+text(pca$scores[,c(2,3)], labels = abbreviate(rownames(mydata)), cex = 0.6, col = km$classification)
+```
+
+
+h)	Perform model-based clustering without identifying the number of clusters. Plot the result of classification. How many groups are identified in your data? Determine what countries are in which group?
+
+# There are 2 clusters. listed below are the countries in each cluster.
+
+```{r}
+library("mclust")
+mc <- Mclust(mydata)
+mc.clust <- mc$classification
+table(mc.clust)
+cat("\nCountries in cluster 1 \n")
+names(mc.clust[mc.clust == 1])
+cat("\nCountries in cluster 2 \n")
+names(mc.clust[mc.clust == 2])
+plot(mc, "BIC")
+```
+
+
+i)	Use “plot” on your fitted mclust object, and report the “uncertainty” plot for variables (SER, SPS), which is dimens = c(6,8). Explain the grouping of what country is more uncertain with what probability of uncertainty.
+
+# By cross referencing the values we see that the grouping of country Malta is uncertain.
+```{r}
+plot(mc,  what = "uncertainty", dimens = c(6,8))
+```
+
+
+j)	Construct the appropriate contingency table between the given grouping in the original cleaned data (euro.c$Group) and the groups we found in the model-based clustering. Interpret the table, and explain how well do the model-based clusters correspond? Code for contingency  table is like: table(euro.c$Group, mc$classification).
+
+# We found 2 clusters from mclust where as there were 4 groups in the cleaned data. Eastern and others were part of the 2nd cluster with one country from EU group belonging to the 2nd cluster which is Netherlands. The model based clustering works well but it was not able to distinguish between EFTA and EU countries. but neither were other models. Moreover if we look at the data we see that the averages for almost all variables are very close for EFTA and EU countries. 
+
+```{r}
+library("dplyr")
+table(euro.c$Group, mc$classification)
+
+euro %>% group_by(Group) %>% summarise(across(everything(), mean))
+```
+
