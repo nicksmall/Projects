@@ -1,0 +1,159 @@
+---
+title: "Project Update 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Reading the Titanic Dataset
+train <- read.csv("/Users/Ewaen/Desktop/train.csv", stringsAsFactors=TRUE)
+train
+```
+
+```{r}
+#selecting needed columns and plotting variables
+mydata <-train[,c(0,1,2,3,4,5,6)]
+mydata
+mydata$score <- NULL
+plot(mydata)
+
+```
+
+```{r}
+mydata
+#Checking the number of row before removing outliers
+nrow(mydata)
+# Find the mahalanobis distance
+mdist <- mahalanobis(mydata, colMeans(mydata), cov = cov(mydata))
+# find the 0.95 quantile of mahalanobis distances
+cutPoint <- quantile(mdist, .95)
+# Filter the data with the mahalanobis distance of less than 0.95 quantile
+newdata <- mydata[(mdist<cutPoint),]
+newdata
+#Checking the number of rows after removing outliers
+nrow(newdata)
+#Plotting new scatter plot after removing outliers
+plot(newdata)
+cor<-cor(newdata)
+cor
+```
+
+
+```{r}
+#performing principal component analysis and plotting biplot
+pc<-princomp(newdata, cor=T)
+pc
+biplot(pc, col=c("black", "red"), cex =0.8)
+```
+
+```{r}
+#getting the pc loadings
+summary(pc, loading = T)
+round(100*sum((pc$sdev^2)[1:3])/sum(pc$sdev^2),1)
+```
+
+```{r}
+#scree plot
+library(factoextra)
+fviz_eig(pc)
+```
+
+
+
+```{r}
+#lets get the pc scores and loadings for the dataset
+score<-pc$score[,1:3]
+head(score)
+pc$loading[,1:3]
+
+```
+
+
+```{r}
+#Performing hierarchical cluster analysis
+scale.dist = dist(scale(newdata))
+scale.dist
+hc <- hclust(scale.dist, "complete")
+plot(hc, main = "Complete Linkage HC Dendogram")
+abline(h=3)
+```
+
+```{r}
+#getting scree plot of height values
+names(hc)
+hc$height
+plot(rev(hc$height))
+```
+```{r}
+#Getting cluster distribution between groups 
+scale.dist = dist(scale(newdata))
+hc <- hclust(scale.dist, "complete")
+ct<-cutree(hc,3)
+head(ct)
+titanic.clust <- data.frame(ct)
+table(titanic.clust)
+```
+
+```{r}
+#scree plot to determine the number of clusters in the dataset. 
+plot.wgss = function(newdata, maxc) {
+  wss = numeric(maxc)
+  for (i in 1:maxc) 
+    wss[i] = kmeans(newdata,centers=i, nstart = 10)$tot.withinss 
+  plot(1:maxc, wss, type="b", xlab="Number of Clusters",
+  ylab="Within groups sum of squares", main="Scree Plot") 
+}
+
+plot.wgss(newdata, 20) #Elbow test; testing first 20 clusters
+```
+
+```{r}
+#repeating the iteration 10 times using the 'nstart' method to get a more reliable analysis. 
+km <- kmeans(newdata, center = 4, nstart = 10)
+table(km$cluster)
+```
+
+
+
+```{r}
+
+#using principal component analysis to determine the meaning of clusters by making a plot of the pc scores
+pc
+pc$loadings[,1:3]
+plot(pc$scores[, c(1:2)], col = km$cluster)
+```
+```{r}
+#getting cluster centroids
+km$centers
+```
+
+
+
+```{r}
+#Model-based clustering
+install.packages('mclust')
+#library("mclust")
+mc <- Mclust(newdata)
+mc.clust <- mc$classification
+table(mc.clust)
+cat("\nCountries in cluster 1 \n")
+names(mc.clust[mc.clust == 1])
+cat("\nCountries in cluster 2 \n")
+names(mc.clust[mc.clust == 2])
+plot(mc, "BIC")
+```
+
+```{r}
+#uncertainty plot
+plot(mc,  what = "uncertainty")
+```
+```{r}
+#Uncertainty probability values
+options(max.print=1000000)
+clust.data=cbind(rownames(newdata), mc$classification, mc$uncertainty)
+clust.data[order(mc$uncertainty),]
+```
+
