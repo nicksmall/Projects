@@ -1,0 +1,99 @@
+---
+title: "Homework 7"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+stock <- read.csv("https://bit.ly/3egKiMU")
+# Multiplying by 100 to convert to % scale
+mydata<-stock*100
+```
+
+Problem 1 - Use the Daily stock returns data set. The columns are companies; Man1, Man2, Man3 are manufacturing companies; Serv1, Serv2, Serv3, Serv4 are service companies.
+
+
+a)	Perform confirmatory factor analysis base on two factors: manufacturing and service.
+
+```{r}
+# The p Value = 0.7954455 which is > than 0.05. We fail to reject the null hypothesis. 
+# The Data does support the designed CFA model. Model is confirmed.
+
+library(sem)
+
+stock_model <- specifyModel(text = "
+
+Manufacturing -> Man1, lambda1, NA
+
+Manufacturing -> Man2, lambda2, NA
+
+Manufacturing -> Man3, lambda3, NA
+
+ServiceReturn -> Serv1, lambda4, NA
+
+ServiceReturn -> Serv2, lambda5, NA
+
+ServiceReturn -> Serv3, lambda6, NA
+
+ServiceReturn -> Serv4, lambda7, NA
+
+Manufacturing <-> ServiceReturn, rho, NA
+
+Man1 <-> Man1, theta1, NA
+
+Man2 <-> Man2, theta2, NA
+
+Man3 <-> Man3, theta3, NA
+
+Serv1 <-> Serv1, theta4, NA
+
+Serv2 <-> Serv2, theta5, NA
+
+Serv3 <-> Serv3, theta6, NA
+
+Serv4 <-> Serv4, theta7, NA
+
+Manufacturing <-> Manufacturing, NA, 1
+
+ServiceReturn <-> ServiceReturn, NA, 1")
+
+stock_sem <- sem(stock_model, cor(mydata), nrow(mydata))
+summary(stock_sem)
+```
+
+b)	Report the path diagram that shows coefficient estimates. Code: library(semPlot); semPaths(fitted.sem.object, “est”)
+
+```{r}
+library(semPlot)
+semPaths(stock_sem, rotation = 2, 'std', 'est')
+```
+
+c)	Report SRMR, GFI, and AGFI. What do you conclude? Is the model you made in part (a) approved.
+
+```{r}
+# The Data does support the designed CFA model. Model is confirmed.
+
+options(fit.indices = c("GFI", "AGFI", "SRMR"))
+criteria = summary(stock_sem)
+criteria$SRMR 
+criteria$GFI
+criteria$AGFI
+criteria$SRMR < 0.05
+criteria$GFI > 0.95
+criteria$AGFI > 0.95
+```
+d)	Find the 95% confidence interval for the correlation between the two factors: manufacturing and service returns.
+
+```{r}
+parameters = summary(stock_sem)
+parameters$coeff[8,]$Estimate
+
+conf.L = parameters$coeff[8,]$Estimate - 1.96 * parameters$coeff[8,]$`Std Error`
+conf.U = parameters$coeff[8,]$Estimate + 1.96 * parameters$coeff[8,]$`Std Error`
+conf.L
+conf.U
+```
+
