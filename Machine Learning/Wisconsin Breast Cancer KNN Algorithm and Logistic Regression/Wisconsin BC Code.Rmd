@@ -1,0 +1,164 @@
+---
+title: "Assign1_Small"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+#Libraries
+library(caret)
+library(class)
+library(gmodels)
+```
+
+
+
+```{r}
+df <- read.csv("/Users/Nick/Desktop/wisc_bc_data.csv", stringsAsFactors=FALSE)
+str(df)
+
+# Dropping ID Column
+df <- df[-1]
+
+# Number of each occurrences of Benign and Malignant
+table(df$diagnosis)
+
+# Probability of Benign and Malignant
+round(prop.table(table(df$diagnosis)) * 100, digits = 1)
+
+# Recoding Benign and Malignant to 0 and 1
+diagnosis <- factor(df$diagnosis, levels = c("B", "M"), labels = c("0", "1"))
+
+# Normalizing the numeric values
+summary(df[c("radius_mean", "area_mean", "smoothness_mean")])
+normalize <- function(x) {return ((x - min(x)) / (max(x) - min(x)))}
+df <- as.data.frame(lapply(df[2:31], normalize))
+df <- cbind(diagnosis, df)
+
+
+```
+
+
+
+```{r}
+# Training and Testing Model 70% and 30% with Full DataSet
+df_train <- df[1:398, ]
+df_test <- df[399:569, ]
+df_train_labels <- df[1:398, 1]
+df_test_labels <- df[399:569, 1]
+```
+
+
+```{r}
+# k-NN Algorithm
+sqrt(569)
+prediction <- knn(train = df_train, test = df_test, cl = df_train_labels, k=20)
+CrossTable(x = df_test_labels, y = prediction, prop.chisq=F)
+
+# Evaluate Model Performance with a different K value
+# Using Scale() function
+df_p <- as.data.frame(scale(df[-1]))
+df_p <- as.data.frame(scale(df_p[-31]))
+
+
+df_train <- df_p[1:398, ]
+df_test <- df_p[399:569, ]
+df_train_labels <- df[1:398, 1]
+df_test_labels <- df[399:569, 1]
+prediction3 <- knn(train = df_train, test = df_test, cl = df_train_labels, k=51)
+CrossTable(x = df_test_labels, y = prediction3, prop.chisq=F)
+
+# This will test varying K's from 1 to 100 and provide the best K value.
+
+accuracy <- numeric() 
+
+for(i in 1:100){
+    predict <- knn(train=df_train, test=df_test, cl=df_train_labels, k=i, prob=T)
+    accuracy <- c(accuracy,mean(predict==df_test_labels))
+}
+
+acc <- data.frame(k= seq(1,100), cnt = accuracy)
+
+opt_k <- subset(acc, cnt==max(cnt))[1,]
+sub <- paste("The best K = ", opt_k$k, "(Accuracy =", opt_k$cnt,")")
+sub
+
+library(highcharter)
+hchart(acc, 'line', hcaes(k, cnt)) %>%
+  hc_title(text = "The varying Accuracy for K") %>%
+  hc_add_theme(hc_theme_darkunica()) %>%
+  hc_xAxis(title = list(text = "K Number")) %>%
+  hc_yAxis(title = list(text = "Accuracy"))
+
+```
+
+
+
+
+```{r}
+# Logistic Regression
+df2 <- read.csv("/Users/Nick/Desktop/wisc_bc_data.csv", stringsAsFactors=FALSE)
+
+# Dropping ID Column
+df2 <- df2[-1]
+
+# Recoding Benign and Malignant to 0 and 1
+diagnosis <- factor(df2$diagnosis, levels = c("B", "M"), labels = c("0", "1"))
+
+df2_s <- cbind(diagnosis, df2)
+df2_s <- df2_s[-2]
+
+# Creates a New Data set with the removal of al predictors
+df2_srp <-subset(df2_s, select=-c(area_mean,radius_mean,area_worst,compactness_mean,perimeter_worst,compactness_se,concavity_worst,fractal_dimension_worst))
+
+set.seed(1234)
+# Full Data Set 
+train <- sample(nrow(df2_s), 0.7*nrow(df2_s))
+df2_s.train <- df2_s[train,]
+df2_s.test <- df2_s[-train,]
+
+# Data Set with removed predictors
+
+train2 <- sample(nrow(df2_srp), 0.7*nrow(df2_srp))
+df2_srp.train <- df2_srp[train,]
+df2_srp.test <- df2_srp[-train,]
+
+
+# Logistic Regression of Full Data Set 
+fit.logit <- glm(diagnosis~., data=df2_s.train, family = binomial())
+summary(fit.logit)
+
+prob <- predict(fit.logit, df2_s.test, type="response")
+logit.pred <- factor(prob > .5, levels=c(FALSE, TRUE), labels = c("benign","malignant"))
+
+logit.perf <- table(df2_s.test$diagnosis, logit.pred, dnn = c("Actual", "Predicted") )
+
+accuracy <- table(logit.pred, df2_s.test$diagnosis)
+sum(diag(accuracy))/sum(accuracy)
+
+# Logistic Regression with removal of predictors
+
+fit.logit2 <- glm(diagnosis~., data=df2_srp.train, family = binomial())
+summary(fit.logit2)
+
+prob2 <- predict(fit.logit2, df2_srp.test, type="response")
+logit.pred2 <- factor(prob2 > .5, levels=c(FALSE, TRUE), labels = c("benign","malignant"))
+
+logit.perf2 <- table(df2_srp.test$diagnosis, logit.pred2, dnn = c("Actual", "Predicted") )
+
+accuracy2 <- table(logit.pred2, df2_srp.test$diagnosis)
+sum(diag(accuracy2))/sum(accuracy2)
+
+```
+
+
+
+
+
+
