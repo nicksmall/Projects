@@ -1,0 +1,71 @@
+---
+title: "Assign2-2_Small"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(ggplot2)
+library(e1071)
+library(tree)
+library(rpart)
+```
+
+
+```{r}
+data <- read.csv("/Users/Nick/Desktop/eBay.csv", stringsAsFactors=FALSE)
+Duration <- as.factor(data$Duration)
+Competitive <- as.factor(data$Competitive)
+data <- cbind(Duration, data[,-4])
+data <- cbind(Competitive, data[,-8])
+str(data)
+```
+
+```{r}
+set.seed(1234)
+inTrain <- createDataPartition(y=data$Competitive, p=0.7, list=FALSE)
+trainSet <- data[inTrain,]
+testSet <- data[-inTrain,]
+```
+
+```{r}
+treemod <- tree(Competitive~., data=trainSet)
+plot(treemod)
+text(treemod)
+```
+```{r}
+cv.trees <- cv.tree(treemod, FUN=prune.misclass)
+plot(cv.trees)
+```
+
+```{r}
+prune.trees <- prune.misclass(treemod, best=8)
+plot(prune.trees)
+text(prune.trees, pretty=0)
+```
+```{r}
+treepred <- predict(prune.trees, testSet, type='class')
+confusionMatrix(treepred, testSet$Competitive)
+```
+```{r}
+rpartmod <- rpart(Competitive~., data=trainSet, method ="class")
+plot(rpartmod)
+text(rpartmod)
+```
+```{r}
+printcp(rpartmod)
+ptree <- prune(rpartmod, cp=rpartmod$cptable[which.min(rpartmod$cptable[,"xerror"]),"CP"])
+plot(ptree)
+text(ptree)
+```
+```{r}
+rpartpred <- predict(ptree, testSet, type='class')
+confusionMatrix(rpartpred, testSet$Competitive)
+```
+
+

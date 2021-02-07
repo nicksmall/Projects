@@ -1,0 +1,70 @@
+---
+title: "Assignment2-1_Small"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(caret)
+library(ggplot2)
+library(e1071)
+```
+
+
+```{r}
+#Reading and Cleaning the Data
+df <- read.csv("/Users/Nick/Desktop/delay.csv", stringsAsFactors=FALSE)
+Day.of.Week <- as.factor(df$Day.of.Week)
+Status <- factor(df$Status, levels = c("0", "1"), labels = c("on-time", "Delayed"))
+df <- cbind(Day.of.Week, df[,-1])
+df <- cbind(Status, df[,-5])
+```
+
+```{r}
+#Training Dataset
+set.seed(1234)
+intrain <- createDataPartition(y=df$Status, p=0.7, list=FALSE)
+trainset <- df[intrain,]
+testset <- df[-intrain,]
+
+#Naive Model
+nb.model <- naiveBayes(Status~., data=trainset)
+nb.model
+
+#Prediction Function
+nb.model.pred <- predict(nb.model, testset, type='class')
+nb.model.pred
+
+#Confusion Table
+actual <- testset$Status
+confusionMatrix(actual, nb.model.pred)
+
+#Equations
+# {Status=Delayed} given {Carrier = DL, Day of Week=Saturday (7), Destination = LGA, and Origin = DCA.}
+# P{Carrier = DL} -> 0.086956522 
+# P{Day of the week = Saturday (7)} -> 0.0000000
+# P{Destination = LGA} -> 0.5217391
+# P{Origin = DCA} -> 0.5652174 
+# P{Status = Delayed} -> 0.07641196
+
+Probability.Delayed = 0.086956522 * 0.0000000 * 0.5217391 * 0.5652174 * 0.07641196
+Probability.Delayed
+
+# P{Carrier = DL} -> 0.129496403 
+# P{Day of the week = Saturday (7)} -> 0.1690647
+# P{Destination = LGA} -> 0.4100719
+# P{Origin = DCA} -> 0.5287770 
+# P{Status = on-time} -> 0.92358804 
+
+Probability.ontime = 0.129496403 * 0.1690647 * 0.4100719 * 0.5287770 *0.92358804
+Probability.ontime
+
+# P{Status=Delayed} given {Carrier = DL, Day of Week=Saturday (7), Destination = LGA, and Origin = DCA.}
+Probability = (0)/(0.004384515+0)
+Probability
+```
+
