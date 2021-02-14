@@ -1,0 +1,126 @@
+---
+title: "Assign3_Small"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Libraries
+library(caret)
+library(ipred)
+library(adabag)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(e1071)
+library(ggplot2)
+library(partykit)
+```
+
+
+```{r}
+df <- read.csv("/Users/Nick/Desktop/UniversalBank_Ensemble.csv", stringsAsFactors=FALSE)
+Personal.Loan <- as.factor(df$Personal.Loan)
+Education <- as.factor(df$Education)
+Securities.Account <- as.factor(df$Securities.Account)
+Family <- as.factor(df$Family)
+CreditCard <- as.factor(df$CreditCard)
+Age <- as.numeric(df$Age)
+Experience <- as.numeric(df$Experience)
+Income <- as.numeric(df$Income)
+Mortgage <-as.numeric(df$Income)
+
+df <- cbind(Personal.Loan, df[,-7])
+df <- cbind(Education, df[,-6])
+df <- cbind(Securities.Account, df[,-8])
+df <- cbind(Family, df[,-7])
+df <- cbind(CreditCard, df[,-9])
+df <- cbind(Age, df[,-6])
+df <- cbind(Experience, df[,-7])
+df <- cbind(Income, df[,-8])
+df <- cbind(Mortgage, df[,-9])
+str(df)
+```
+
+```{r}
+#Training and splitting Data Set
+
+set.seed(1234)
+intrain <- createDataPartition(y=df$Personal.Loan, p=0.7, list=FALSE)
+trainset <- df[intrain,]
+testset <- df[-intrain,]
+
+tree <- rpart(Personal.Loan ~ ., data=trainset, method = "class")
+tree <- as.party(tree)
+plot(tree)
+```
+
+
+
+```{r}
+#Bagging
+
+df.single <- rpart(Personal.Loan~., data = trainset, method = 'class')
+
+df.bagging <- bagging(Personal.Loan~., data = trainset, mfinal = 5, control = rpart.control(maxdepth=5,minsplit = 5))
+
+rpart.plot(df.bagging$trees[[1]])
+
+barplot(df.bagging$importance[order(df.bagging$importance, decreasing=TRUE)], ylim=c(0,100), main="variables Relative Importance", col="red")
+
+#Performance of Bagging
+
+pred <- predict(df.single, testset, type = "class")
+confusionMatrix(pred,testset$Personal.Loan)
+
+pred2 <- predict(df.bagging, testset, type="class")
+
+
+confusionMatrix(factor(pred2$class),testset$Personal.Loan)
+
+```
+```{r}
+#Boosting
+set.seed(123)
+
+df.boost <- boosting(Personal.Loan~., data = trainset, mfinal = 5, control = rpart.control(maxdepth=5,minsplit = 5))
+
+rpart.plot(df.boost$trees[[1]])
+
+barplot(df.boost$importance[order(df.boost$importance, decreasing=TRUE)], ylim=c(0,100), main="variables Relative Importance", col="green")
+
+#Performance of Boosting
+
+pred3 <- predict(df.single, testset, type = "class")
+confusionMatrix(pred3,testset$Personal.Loan)
+
+pred4 <- predict(df.boost, testset, type="class")
+
+confusionMatrix(factor(pred4$class),testset$Personal.Loan)
+```
+
+
+```{r}
+#RandomForest
+
+set.seed(400)
+myForest <- randomForest(Personal.Loan~., nodesize = 3, mtry = 2, ntree = 15, data=df)
+myForest.pred <- predict(myForest, newdata = testset)
+
+myForest
+
+ggplot(testset, aes(Personal.Loan, pred, color = Personal.Loan)) +
+  geom_jitter(width = 0.2, height = 0.1, size = 2) +
+  labs(title="confusion Matrix",
+       subtitle="Predicted vs. Observed from Universal Bank Data Set",
+       y="Predicted", x="Truth")
+
+varImpPlot(myForest)
+
+```
+
+
