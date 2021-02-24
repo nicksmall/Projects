@@ -1,0 +1,82 @@
+---
+title: "Assign4-2_Small"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(caret)
+library(neuralnet)
+library(nnet)
+```
+
+
+```{r}
+toyota.df <- read.csv("/Users/Nick/Desktop/toyota.csv", stringsAsFactors=FALSE)
+toyota.df$Fuel_Diesel <- ifelse(toyota.df$Fuel_Type=="Diesel", 1, 0)
+toyota.df$Fuel_Petrol <- ifelse(toyota.df$Fuel_Type=="Petrol", 1, 0)
+columns <- c('Powered_Windows', 'Power_Steering', 'ABS', 'KM', 'Radio', 'Central_Lock', 'Price')
+
+toyota.df <- toyota.df[,(names(toyota.df) %in% columns)]
+
+
+str(toyota.df)
+```
+
+
+```{r}
+normalize <- function(x){return ((x-min(x))/(max(x)-min(x)))}
+
+toyota.df <- as.data.frame(lapply(toyota.df, normalize))
+
+set.seed(1234)
+intrain <- createDataPartition(y=toyota.df$Price, p=0.6, list=FALSE)
+train <- toyota.df[intrain,]
+test <- toyota.df[-intrain,]
+
+```
+
+```{r}
+library(corrplot)
+model1 <- neuralnet(Price~., data = train)
+plot(model1)
+model1_Results <- compute(model1, test[2:7])
+predicted_Price1 <- model1_Results$net.result
+
+cor(predicted_Price1, test$Price)
+
+plot(predicted_Price1, test$Price, pch = 15, col = c("red", "blue"))
+```
+
+```{r}
+model2 <- neuralnet(Price~., data = train, hidden = 5)
+plot(model2)
+model2_Results <- compute(model2, test[2:7])
+predicted_Price2 <- model2_Results$net.result
+
+cor(predicted_Price2, test$Price)
+plot(predicted_Price2, test$Price, pch = 15, col = c("red", "blue"))
+```
+```{r}
+model4 <- train(Price~., data = train, method = "nnet")
+print(model4)
+
+model4_predict1 <- predict(model4, test[2:7], type = "raw")
+summary(model4_predict1)
+cor(model4_predict1, test$Price)
+```
+```{r}
+model5 <- train(Price~., data = train, method = "nnet")
+print(model5)
+
+model5_predict1 <- predict(model5, test[2:7], type = "raw")
+summary(model5_predict1)
+cor(model5_predict1, test$Price)
+```
+
