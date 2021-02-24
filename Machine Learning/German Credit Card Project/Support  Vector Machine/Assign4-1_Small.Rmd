@@ -1,0 +1,137 @@
+---
+title: "Assign4-1_Small"
+output: word_document
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+library(caret)
+library(tidyverse)
+library(ggplot2)
+library(magrittr)
+library(BBmisc)
+library(e1071)
+library(caret)
+```
+
+
+```{r}
+df <- read.csv("/Users/Nick/Desktop/credit2.csv", stringsAsFactors=FALSE)
+str(df)
+```
+
+```{r}
+hist(df$credit.duration.month)
+hist(df$credit.amount)
+hist(df$age)
+```
+```{r}
+numeric.var <- c("account.balance", "credit.rating", "previous.credit.payment.status", "credit.purpose", "savings", "employment.duration", "installment.rate", "marital.status", "guarantor", "residence.duration", "current.assets", "other.credits", "apartment.type", "bank.credits", "occupation", "dependents", "telephone", "foreign.worker")
+
+normalize <- function(x) {return ((x - min(x)) / (max(x) - min(x)))}
+df.n1 <- as.data.frame(lapply(df[3], normalize))
+df.n2 <- as.data.frame(lapply(df[6], normalize))
+df.n3 <- as.data.frame(lapply(df[14], normalize))
+
+df.n <- cbind(df.n1, df.n2, df.n3)
+df.n <- cbind(df,df.n)
+df.n <- subset(df.n, , -c(3,6,14))
+str(df.n)
+```
+
+```{r}
+hist(df.n$credit.duration.month)
+hist(df.n$credit.amount)
+hist(df.n$age)
+```
+
+
+
+
+```{r}
+set.seed(1234)
+intrain <- createDataPartition(y=df.n$credit.rating, p=0.6, list=FALSE)
+train <- df.n[intrain,]
+test <- df.n[-intrain,]
+```
+
+
+```{r}
+#Default
+credit.svm = svm(credit.rating~ ., data = train, cost = 1, gamma = 1/length(train), probability = TRUE)
+
+#Linear
+credit.svm2 = svm(credit.rating~ ., data = train, kernel = "linear", cost = 1, gamma = 1/length(train), probability = TRUE)
+
+#Non-Linear
+credit.svm3 = svm(credit.rating~ ., data = train, kernel = "radial", cost = 1, gamma = 1/length(train), probability = TRUE)
+```
+
+
+
+```{r}
+#Default
+prob.svm = predict(credit.svm, train, probability = TRUE)
+pred.svm = as.numeric((prob.svm >= 0.16))
+
+table(train$credit.rating, pred.svm, dnn = c("Obs", "Pred"))
+agreement <- pred.svm==test$credit.rating
+table(agreement)
+prop.table(table(agreement))
+
+
+prob.svm1 = predict(credit.svm, test, probability = TRUE)
+pred.svm1 = as.numeric((prob.svm1 >= 0.16))
+
+table(test$credit.rating, pred.svm1, dnn = c("Obs", "Pred"))
+agreement1 <- pred.svm1==test$credit.rating
+table(agreement1)
+prop.table(table(agreement1))
+
+```
+```{r}
+#Linear
+prob.svm2 = predict(credit.svm2, train, probability = TRUE)
+pred.svm2 = as.numeric((prob.svm2 >= 0.16))
+
+table(train$credit.rating, pred.svm2, dnn = c("Obs", "Pred"))
+agreement2 <- pred.svm2==test$credit.rating
+table(agreement2)
+prop.table(table(agreement2))
+
+
+prob.svm3 = predict(credit.svm2, test, probability = TRUE)
+pred.svm3 = as.numeric((prob.svm3 >= 0.16))
+
+table(test$credit.rating, pred.svm3, dnn = c("Obs", "Pred"))
+agreement3 <- pred.svm3==test$credit.rating
+table(agreement3)
+prop.table(table(agreement3))
+
+```
+
+```{r}
+#Non-Linear
+prob.svm4 = predict(credit.svm3, train, probability = TRUE)
+pred.svm4 = as.numeric((prob.svm4 >= 0.16))
+
+table(train$credit.rating, pred.svm4, dnn = c("Obs", "Pred"))
+agreement4 <- pred.svm==test$credit.rating
+table(agreement4)
+prop.table(table(agreement4))
+
+prob.svm5 = predict(credit.svm3, test, probability = TRUE)
+pred.svm5 = as.numeric((prob.svm5 >= 0.16))
+
+table(test$credit.rating, pred.svm5, dnn = c("Obs", "Pred"))
+agreement5 <- pred.svm==test$credit.rating
+table(agreement5)
+prop.table(table(agreement5))
+```
+
